@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phishing URL Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #f9fbff;
+      --text: #18212f;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --container: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .container {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .navbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .nav-inner {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      color: white;
+      font-size: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: #334155;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+      color: white;
+      padding: 72px 0 56px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-size: 50px;
+      line-height: 1.08;
+    }
+
+    .hero p {
+      margin: 0 0 20px;
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 760px;
+    }
+
+    .hero-note {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.78);
+      margin-bottom: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-size: 15px;
+      font-weight: 700;
+      transition: 0.2s ease;
+    }
+
+    .btn-primary {
+      background: white;
+      color: #0f172a;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      background: #eff6ff;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 24px;
+      padding: 24px;
+      backdrop-filter: blur(6px);
+    }
+
+    .hero-card p {
+      margin-bottom: 18px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .section {
+      padding: 60px 0;
+    }
+
+    .section-light {
+      background: #ffffff;
+    }
+
+    .section-soft {
+      background: #f8fafc;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 34px;
+      color: #0f172a;
+    }
+
+    .section-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      max-width: 820px;
+    }
+
+    .section-head {
+      margin-bottom: 28px;
+    }
+
+    .analyzer-layout {
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .card-title {
+      margin: 0 0 10px;
+      font-size: 24px;
+      color: #0f172a;
+    }
+
+    .card-text {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .model-select-wrap {
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+
+    .model-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .model-select {
+      width: 100%;
+      min-height: 52px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 15px;
+      padding: 0 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .model-select:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .input-shell {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0 14px;
+      min-height: 56px;
+    }
+
+    .input-shell span {
+      font-size: 18px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    input[type="text"]::placeholder {
+      color: #94a3b8;
+    }
+
+    .analyze-btn {
+      min-width: 150px;
+      min-height: 56px;
+      border-radius: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      transition: 0.2s ease;
+    }
+
+    .analyze-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .quick-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .quick-btn {
+      border: 1px solid var(--border);
+      background: #eef4ff;
+      color: #1d4ed8;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .quick-btn:hover {
+      background: #dbeafe;
+    }
+
+    .status-box {
+      margin-top: 16px;
+    }
+
+    .loading,
+    .error {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .loading {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .result-shell {
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      background: #fbfdff;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .chart-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chart-label {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .mode-pill {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+
+    .legitimate-pill {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .phishing-pill {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .risk-low {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .risk-medium {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+
+    .risk-high {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      margin: 12px 0;
+      align-items: start;
+    }
+
+    .kv .k {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .kv .v {
+      color: var(--text);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .reason-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .reason-list li {
+      margin-bottom: 8px;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 24px;
+    }
+
+    .info-list {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    .info-list li {
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .history-item {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .history-item:hover {
+      background: #eef4ff;
+      border-color: #bfdbfe;
+    }
+
+    .history-url {
+      font-size: 14px;
+      color: #1e293b;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .feature-card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .footer {
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 44px 0 22px;
+      margin-top: 20px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .footer h3 {
+      margin: 0 0 12px;
+      color: white;
+      font-size: 18px;
+    }
+
+    .footer p,
+    .footer li,
+    .footer a {
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .footer ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 16px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .analyzer-layout,
+      .two-col,
+      .footer-grid,
+      .result-grid,
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 38px;
+      }
+
+      .nav-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px 0;
+      }
+
+      .nav-links {
+        gap: 14px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 56px 0 44px;
+      }
+
+      .hero h1 {
+        font-size: 30px;
+      }
+
+      .section-title {
+        font-size: 28px;
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      .analyze-btn {
+        width: 100%;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#home" class="brand">
+        <div class="brand-badge">🛡️</div>
+        <span>Lightweight Phishing Website Detector</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#analyzer">Analyzer</a>
+        <a href="#features">How It Works</a>
+        <a href="#about">About</a>
+        <a href="#history">History</a>
+        <a href="#disclaimer">Disclaimer</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" id="home">
+    <div class="container hero-grid">
+      <div>
+        <h1>Check whether a URL is safe or suspicious</h1>
+        <p>
+          Enter a URL to check if it looks safe or suspicious. The system analyzes the link,
+          estimates its risk level, and shows a short explanation so you can decide whether to trust it.
+        </p>
+        <div class="hero-note">
+          This assessment is automated and should be used as a guide, not as the only security decision.
+        </div>
+
+        <div class="hero-actions">
+          <a href="#analyzer" class="btn btn-primary">Check URL</a>
+          <a href="#features" class="btn btn-secondary">How it works</a>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <h3 style="margin-top:0; font-size:24px;">What this tool does?</h3>
+        <p style="margin:0; color: rgba(255,255,255,0.85);">
+          Quickly review unknown links with a clear risk result, probability score, and a short explanation of the findings.
+        </p>
+
+        <div class="hero-stats">
+          <div class="stat">
+            <strong>Detection</strong>
+            <span>Analyzes the URL using phishing detection models and risk indicators.</span>
+          </div>
+
+          <div class="stat">
+            <strong>Result</strong>
+            <span>Shows whether the link appears safe or potentially suspicious.</span>
+          </div>
+
+          <div class="stat">
+            <strong>Probability</strong>
+            <span>Displays the estimated phishing likelihood in a visual chart.</span>
+          </div>
+
+          <div class="stat">
+            <strong>Explanation</strong>
+            <span>Lists the key signals that influenced the result.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-light" id="analyzer">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">URL Checker</h2>
+        <p class="section-text">
+          Enter a full URL including <b>http</b> or <b>https</b>. The tool will review the link,
+          estimate phishing likelihood, show the detection mode used, and provide a short explanation.
+        </p>
+      </div>
+
+      <div class="analyzer-layout">
+        <div class="card">
+          <h3 class="card-title">Check a URL</h3>
+          <p class="card-text">
+            Paste a link below and choose how you want the prediction to run.
+          </p>
+
+          <div class="model-select-wrap">
+            <label for="modelSelect" class="model-label">Prediction mode</label>
+            <select id="modelSelect" class="model-select">
+              <option value="auto" selected>Auto</option>
+              <option value="web">Web Model</option>
+              <option value="url">URL Model</option>
+            </select>
+          </div>
+
+          <div class="input-row">
+            <div class="input-shell">
+              <span>🔎</span>
+              <input type="text" id="urlInput" placeholder="https://example.com" />
+            </div>
+            <button class="analyze-btn" onclick="analyzeURL()">Check URL</button>
+          </div>
+
+          <div class="quick-btns">
+            <button class="quick-btn" onclick="setURL('https://www.kaggle.com/datasets/abhijitsatyaki/phishing-website-dataset')">Example: Safe</button>
+            <button class="quick-btn" onclick="setURL('http://trezor-login.com')">Example: Suspicious</button>
+            <button class="quick-btn" onclick="setURL('http://paypal-secure-update.xyz')">Example: High Risk</button>
+          </div>
+
+          <div id="status" class="status-box"></div>
+          <div id="result"></div>
+        </div>
+
+        <div class="side-stack">
+          <div class="card">
+            <h3 class="card-title">How to use</h3>
+            <ol class="info-list">
+              <li>Enter the full link you want to review.</li>
+              <li>Select <b>Auto</b>, <b>Web Model</b>, or <b>URL Model</b>.</li>
+              <li>Click <b>Check URL</b> to start the analysis.</li>
+              <li>In Auto mode, the system tries the Web model first and falls back to the URL model if needed.</li>
+            </ol>
+          </div>
+
+          <div class="card" id="history">
+            <h3 class="card-title">Recent checks</h3>
+            <p class="card-text">The 5 most recent URLs are saved locally in your browser.</p>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft" id="features">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-text">
+          The tool combines multiple signals to provide a more useful result than a simple safe or unsafe label.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>Page-based review</h3>
+          <p>
+            When available, the system checks webpage-related signals and page content indicators for suspicious behavior.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <h3>URL-based review</h3>
+          <p>
+            If webpage retrieval is unavailable, the tool falls back to URL structure and lexical pattern analysis.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Clear result summary</h3>
+          <p>
+            Each result includes a label, probability, risk level, and a short explanation of the signals involved.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-light" id="about">
+    <div class="container">
+      <div class="two-col">
+        <div class="card">
+          <h3 class="card-title">About</h3>
+          <p class="card-text">
+            This tool is designed to help users review suspicious links before opening them. It combines page-based checks,
+            URL-based analysis, and a simple explanation layer to make results easier to understand.
+          </p>
+          <p class="card-text" style="margin-bottom:0;">
+            It is intended to support safer browsing decisions and security awareness.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">What the tool includes</h3>
+          <ul class="info-list">
+            <li>Page-based phishing detection</li>
+            <li>URL-based fallback analysis</li>
+            <li>Risk level and score display</li>
+            <li>Probability chart</li>
+            <li>Recent check history</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft" id="disclaimer">
+    <div class="container">
+      <div class="card">
+        <h3 class="card-title">Disclaimer</h3>
+        <p class="card-text" style="margin-bottom:0;">
+          This tool provides an automated assessment for educational and research purposes. Results are probabilistic
+          and may not always reflect the final security status of a website. Use the output as a supporting signal,
+          not as a guarantee.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h3>Lightweight Phishing Website Detector</h3>
+          <p>
+            A web-based tool for reviewing suspicious links with probability scoring and short, readable explanations.
+          </p>
+        </div>
+
+        <div>
+          <h3>Quick Links</h3>
+          <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#analyzer">URL Checker</a></li>
+            <li><a href="#features">How it works</a></li>
+            <li><a href="#about">About</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3>Usage note</h3>
+          <p>
+            Review suspicious results carefully and verify important links through trusted sources when possible.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        © 2026 Phishing URL Detector. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    let chartInstance = null;
+
+    function setURL(url) {
+      document.getElementById("urlInput").value = url;
+      document.getElementById("urlInput").focus();
+    }
+
+    function saveHistory(item) {
+      const history = JSON.parse(localStorage.getItem("phish_history") || "[]");
+      const filtered = history.filter(h => h.url !== item.url);
+      filtered.unshift({ url: item.url });
+      localStorage.setItem("phish_history", JSON.stringify(filtered.slice(0, 5)));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById("historyList");
+      const history = JSON.parse(localStorage.getItem("phish_history") || "[]");
+
+      if (history.length === 0) {
+        historyList.innerHTML = `<div class="history-item"><div class="history-url">No URLs checked yet.</div></div>`;
+        return;
+      }
+
+      historyList.innerHTML = history.map(item => `
+        <div class="history-item" onclick="setURL('${item.url.replace(/'/g, "\\'")}')">
+          <div class="history-url">${escapeHTML(item.url)}</div>
+        </div>
+      `).join("");
+    }
+
+    function extractNumericPercent(value) {
+      if (!value) return 0;
+      const text = String(value);
+      if (text.includes("<")) return 0.01;
+      return parseFloat(text.replace("%", "")) || 0;
+    }
+
+    function getLabelClass(label) {
+      return String(label || "").toLowerCase() === "phishing" ? "phishing-pill" : "legitimate-pill";
+    }
+
+    function getRiskClass(level) {
+      const v = String(level || "Low").toLowerCase();
+      if (v === "high") return "risk-high";
+      if (v === "medium") return "risk-medium";
+      return "risk-low";
+    }
+
+    function renderChart(label) {
+      return `
+        <div class="chart-panel">
+          <canvas id="probChart" width="220" height="220"></canvas>
+          <div class="chart-label">${escapeHTML(label)}</div>
+        </div>
+      `;
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function analyzeURL() {
+      const url = document.getElementById("urlInput").value.trim();
+      const selectedModel = document.getElementById("modelSelect").value;
+      const resultDiv = document.getElementById("result");
+      const statusDiv = document.getElementById("status");
+
+      if (!url) {
+        statusDiv.innerHTML = `<div class="error">Please enter a URL.</div>`;
+        resultDiv.innerHTML = "";
+        return;
+      }
+
+      let loadingText = "Checking URL...";
+      if (selectedModel === "web") loadingText = "Checking URL with Web Model...";
+      if (selectedModel === "url") loadingText = "Checking URL with URL Model...";
+      if (selectedModel === "auto") loadingText = "Checking URL with Auto mode...";
+
+      statusDiv.innerHTML = `<div class="loading">${loadingText}</div>`;
+      resultDiv.innerHTML = "";
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: url,
+            model: selectedModel
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          statusDiv.innerHTML = `<div class="error">${escapeHTML(data.error || "Something went wrong.")}</div>`;
+          return;
+        }
+
+        statusDiv.innerHTML = "";
+
+        const modeText = data.mode || "Unknown model";
+        const riskLevel = data.url_risk_level || "Low";
+        const riskScore = data.url_risk_score || "0/100";
+        const reasons = data.url_risk_reasons || "No reason available";
+        const finalProbability = data.final_probability || "0%";
+        const finalLabel = data.label || "Unknown";
+        const shownURL = data.url || url;
+
+        const reasonItems = String(reasons)
+          .split("; ")
+          .filter(Boolean)
+          .map(r => `<li>${escapeHTML(r)}</li>`)
+          .join("");
+
+        resultDiv.innerHTML = `
+          <div class="result-shell">
+            <div class="result-grid">
+              ${renderChart(finalLabel)}
+              <div class="result-box">
+                <div class="badges">
+                  <span class="pill mode-pill">${escapeHTML(modeText)}</span>
+                  <span class="pill ${getLabelClass(finalLabel)}">${escapeHTML(finalLabel)}</span>
+                  <span class="pill ${getRiskClass(riskLevel)}">${escapeHTML(riskLevel)} Risk</span>
+                </div>
+
+                <div class="kv">
+                  <div class="k">URL</div>
+                  <div class="v">${escapeHTML(shownURL)}</div>
+                </div>
+
+                <div class="kv">
+                  <div class="k">Probability</div>
+                  <div class="v">${escapeHTML(finalProbability)}</div>
+                </div>
+
+                <div class="kv">
+                  <div class="k">Risk Score</div>
+                  <div class="v">${escapeHTML(riskScore)}</div>
+                </div>
+
+                <div class="kv">
+                  <div class="k">Reasons</div>
+                  <div class="v">
+                    <ul class="reason-list">
+                      ${reasonItems || "<li>No reason available</li>"}
+                    </ul>
+                  </div>
+                </div>
+
+                ${data.error ? `
+                  <div class="kv">
+                    <div class="k">Fetch Error</div>
+                    <div class="v">${escapeHTML(data.error)}</div>
+                  </div>
+                ` : ""}
+              </div>
+            </div>
+          </div>
+        `;
+
+        const ctx = document.getElementById("probChart").getContext("2d");
+        const percentage = extractNumericPercent(finalProbability);
+        const remaining = Math.max(0, 100 - percentage);
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Phishing Probability", "Remaining"],
+            datasets: [{
+              data: [percentage, remaining],
+              backgroundColor: ["#dc2626", "#dbeafe"],
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: false,
+            cutout: "72%",
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  color: "#334155",
+                  font: { size: 13 }
+                }
+              }
+            }
+          }
+        });
+
+        saveHistory({ url: shownURL });
+
+      } catch (error) {
+        statusDiv.innerHTML = `<div class="error">Error: ${escapeHTML(error.message)}</div>`;
+      }
+    }
+
+    renderHistory();
+  </script>
+</body>
+</html>
