@@ -82,6 +82,8 @@ phishing-app/
 │   ├── best_web_model.pkl
 │   ├── url_model_columns.pkl
 │   └── web_model_columns.pkl
+├── notebooks/
+│   └── phishing_model_training.ipynb 
 │
 ├── templates/
 │   └── index.html          # Frontend UI
@@ -124,6 +126,11 @@ python app.py
 http://127.0.0.1:5000
 ```
 
+## Model Development
+
+The training and experimentation code is available in:
+
+notebooks/phishing_model_training.ipynb
 
 
 ## Deployment
