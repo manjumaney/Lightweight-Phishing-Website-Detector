@@ -21,6 +21,11 @@ The application provides:
 
 The system uses a hybrid approach combining two machine learning models along with domain-based risk scoring.
 
+### Model Details
+
+Both the URL-based and webpage-based models are implemented using XGBoost.  
+XGBoost was chosen due to its strong performance on structured data and its ability to handle non-linear feature relationships effectively.
+
 ### Web-based Model
 
 This model extracts features from the webpage when it is accessible. It focuses on structural and behavioral signals such as:
